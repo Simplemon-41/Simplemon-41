@@ -1,0 +1,34 @@
+module Patient where
+
+template PatientRecord
+  with
+    ownerHospital : Party        -- hospital that owns the record
+    patientId : Text             -- unique patient identifier
+    summary : Text               -- short medical summary
+    encryptedCID : Text          -- pointer to encrypted off-chain data (IPFS/S3)
+    authorized : [Party]         -- list of hospitals with access
+  where
+    signatory ownerHospital
+
+    -- Hospital owner can grant access
+    controller ownerHospital can
+      GrantAccess : ContractId PatientRecord
+        with newHospital : Party
+        do create this with authorized = newHospital :: authorized
+
+    -- Hospital owner can revoke access
+    controller ownerHospital can
+      RevokeAccess : ContractId PatientRecord
+        with target : Party
+        do let newAuth = filter (/= target) authorized
+           create this with authorized = newAuth
+
+    -- Authorized hospitals can view summary
+    controller (authorized) can
+      ViewSummary : Text
+        do return summary
+
+    -- Authorized hospitals can request encrypted file pointer
+    controller (authorized) can
+      RequestFile : Text
+        do return encryptedCID
