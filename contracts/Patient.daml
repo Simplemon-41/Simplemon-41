@@ -32,3 +32,35 @@ template PatientRecord
     controller (authorized) can
       RequestFile : Text
         do return encryptedCID
+
+
+module Patient where
+
+import DA.Time
+
+template PatientRecord
+  with
+    patientId   : Text
+    name        : Text
+    birthDate   : Date
+    hospital    : Party
+    authorized  : [Party]   -- list of hospitals allowed to access
+  where
+    signatory hospital
+    observer authorized
+
+    -- Choice: Grant access to another hospital
+    choice GrantAccess : ContractId PatientRecord
+      with
+        newHospital : Party
+      controller hospital
+      do
+        create this with authorized = newHospital :: authorized
+
+    -- Choice: Update patient info (e.g. name change, correction)
+    choice UpdatePatient : ContractId PatientRecord
+      with
+        newName : Text
+      controller hospital
+      do
+        create this with name = newName
